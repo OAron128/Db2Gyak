@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Scanner;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 
 public class kapcsolat {
@@ -15,6 +16,7 @@ public class kapcsolat {
 	static Scanner sc;
 	static String user;
 	static ResultSet rs;   //eredménylekérdezés?
+	static CallableStatement  cs;  //hívási rész
 	public static void main(String[] args) {
 
 		DriverReg();
@@ -226,7 +228,7 @@ public class kapcsolat {
 	}
 	
 	//7. feladat
-	static public void ModosithatoKurzor() {
+	public static void ModosithatoKurzor() {
 		System.out.println("Szín: ");
 		String szin = sc.next().trim();
 		String sqlp ="SELECT ar FROM auto WHERE szin = '"+szin+"'";
@@ -242,6 +244,113 @@ public class kapcsolat {
 			}catch(Exception ex) {
 				System.err.println(ex.getMessage());
 				
+			}
+		}
+	}
+	
+	//8. feladat
+	public static void InEljárásHivas() {
+		if(conn != null) {
+			try {
+				String sqlp = " CREATE or replace procedure arcsokkent"+"(kor IN number) is" + "begin"+ "update auto set ar=ar*0.9 where"+ "to_char(sysdate,'yyyy')-evjarat > kor;"+ "end;";
+				System.out.println("Kor: ");
+				int kor = sc.nextInt();
+				s = conn.createStatement();
+				s.executeUpdate(sqlp);
+				System.out.println("Függvény létrejött\n");
+				cs = conn.prepareCall("{call arcsokkent(?)}");
+				cs.setInt(1, kor);
+				cs.execute();
+			}catch(Exception ex) {
+				System.err.println(ex.getMessage());
+			}
+		}
+	}
+	
+	//9. feladat
+	public static void OutjarasHivas() {
+		if (conn!= null) {
+			try {
+				String sqlp= "create or replace procedure atlagar "+ "(sz IN char, atl OUT number) is " + "begin"+ "select avg(ar) into atl from auto where szin=sz; "+"end;";
+				System.out.println("Szín: ");
+				String szin= sc.next();
+				s = conn.createStatement();
+				s.executeUpdate(sqlp);
+				System.out.println("Eljárás létrejött\n");
+				cs = conn.prepareCall("{call atlagar(?, ?)}");
+				cs.setString(1, szin);
+				cs.registerOutParameter(2, java.sql.Types.FLOAT);
+				cs.execute();
+				float atlag = cs.getFloat(2);
+				System.out.println(szin+ "autók átlagára: "+ atlag+ "\n");
+			}catch(Exception ex) {
+				System.err.println(ex.getMessage());
+			}
+		}
+	}
+	public static void FuggvenyHivas() {
+		if(conn!= null) {
+			try {
+				String sqlp = "create or replace function atlagarfv "+"atl number(10,2); "+ "begin"+ "select avg(ar) into atl from auto where szin=sz; "+"return atl; "+ "end;";
+				System.out.println("Szín: ");
+				String szin= sc.next();
+				s = conn.createStatement();
+				s.executeUpdate(sqlp);
+				System.out.println("Függvény létrejött\n");
+				cs = conn.prepareCall("{? = call atlagarfv(?)}");
+				cs.registerOutParameter(1, java.sql.Types.FLOAT);
+				cs.setString(2, szin);
+				cs.execute();
+				float atlag = cs.getFloat(1);
+				System.out.println(szin+" autók átlagára: "+atlag + "\n");
+			}catch(Exception ex) {
+				System.err.append(ex.getMessage());
+			}
+		}
+	}
+	
+	//10. feladat
+	
+	public static void DinamikusTableTorles() {
+		String sqlp = "create or replace procedure tablatorles(nev IN char) is "+ "begin"+ "execute immediate 'drop table' || nev; " +"end;";
+		System.out.println("Törlendõ tábla: ");
+		String name = sc.next().trim();
+		if( conn != null) {
+			try {
+				s = conn.createStatement();
+				s.executeUpdate(sqlp);
+				cs = conn.prepareCall("{call tablatorles(?)}");
+				cs.setString(1, name);
+				cs.execute();
+				System.out.println("tábla törölve\n");
+			}catch(Exception ex) {
+				System.err.println(ex.getMessage());
+			}
+		}
+	}
+	
+	//11. feladat
+	public static void DinamikusModositas() {
+		if(conn != null) {
+			String sqlp = "update auto1 set ar=ar-?";
+			System.out.println("Mennyivel csökkentsük az árat? ");
+			int arcsokk = sc.nextInt();
+			try {
+				conn.setAutoCommit(false);
+				try {
+					ps = conn.prepareStatement(sqlp);
+					ps.setInt(1, arcsokk);
+					ps.executeUpdate();
+					conn.commit();
+					System.out.println("Módosítás megtörtént\n");
+				}catch( Exception e) {
+					System.err.println(e.getMessage());
+					conn.rollback();
+					System.out.println("Módosítás visszavonva\n");
+				}
+				conn.setAutoCommit(true);
+			}catch(Exception ex) {
+				System.err.print(ex.getMessage());
 			}
 		}
 	}
