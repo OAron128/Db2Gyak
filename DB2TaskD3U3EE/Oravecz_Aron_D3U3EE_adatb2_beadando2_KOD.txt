@@ -1,0 +1,726 @@
+
+
+
+
+Adatbázis rendszerek 2
+
+Féléves egyéni PL/SQL feladat
+Egyéni oktatási cégek
+
+
+Készítette:
+Oravecz Áron D3U3EE
+
+
+Gyakorlatvezető:
+Bednarik László
+
+
+
+
+Adatbázis modell:
+ 
+Adatbázis jellemzése:
+•	Székhely jelen esetben 1:1 kapcsolatban áll a Céggel.
+•	A Fogyasztók a céggel pedig 1:N kapcsolatban állnak egymással.
+•	A Székhely és a Fogyasztókat kapcsolótáblával köthetjük össze a Cég tábla jelenlétében.
+•	Székhely:
+o	A Cég tartózkodási helyét tartalmazza. Elsődleges kulcsként egy Tid-t alkalmazok, ami azonosító ként szolgál.
+o	Irányítószám: ahol elhelyezkedik a székhely körzeti szinten, ugyanakkor egész szám típusú rekord.
+o	Város és az utca szöveges típusúak.
+o	A házszám numerikus számként funkcionál jelen esetben.
+•	Fogyasztók:
+o	A Céget igénybe vevő csoportot foglalja magába.
+o	Fid: azonosító és egyben elsődleges kulcsként működik. Ő tárolja el az összefüggő rekordok adatait.
+o	Gyermeknév és a Szülőnév szöveges adattípusként tárolandó.
+o	Diákigazolvány pedig numerikus adattípus.
+•	Cég:
+o	A Cég azonosítóval rendelkezik.
+o	De ebben az esetben leginkább kapcsolótáblaként szolgál, ami összekapcsolja a Fogyasztókat a Székhelyekkel.
+o	A másik két táblának a kulcsait tartalmazza, így azok idegen kulcsként értelmezhetőek.
+o	A Cég tartalmaz egy szöveges adattípust, ami a Cég nevét tárolja.
+o	Tartalmaz egy Dátum típusú adatot is a tábla, ami az alapítás dátumát tartalmazza.
+Táblák létrehozása:
+Székhely:
+ 
+Kiegészítés mert a primary key nem lett definiálva.
+ 
+ 
+Fogyasztók:
+ 
+ 
+Cég:
+ 
+ 
+
+Táblák feltöltése:
+Szekhely:
+BEGIN
+INSERT INTO SZEKHELY VALUES (1,1027,’Budapest’,’Varga köz’,18);
+INSERT INTO SZEKHELY VALUES (2,1025,’Budapest’,’Kossuth utca’,7);
+INSERT INTO SZEKHELY VALUES (3,3531,’Miskolc’,’Bársony út’,2);
+INSERT INTO SZEKHELY VALUES (4,102,’Pest’,’Pestőfi utca’,30);
+INSERT INTO SZEKHELY VALUES (5,1027,’Buda’,’Pákász utca’,8);
+INSERT INTO SZEKHELY VALUES (6,3000,’Füzesabony’,’Mihály köz’,9);
+END;
+ 
+
+
+Fogyaszto:
+BEGIN
+INSERT INTO FOGYASZTOK VALUES (1,’Bánfi Orsolya’,’Kovács Péter’,’Asztalos’,7417175879);
+INSERT INTO FOGYASZTOK VALUES (2, Tóth József’,’Tóth Miklós’,’Programozó’,7417175880);
+INSERT INTO FOGYASZTOK VALUES (3, ’Braskó Áron’,’Braskó Anett’,’Orvos’,7417175130);
+INSERT INTO FOGYASZTOK VALUES (4, ’Bánfi Orsolya’,’Kovács Norbert, ’Programozó’,7417175672);
+INSERT INTO FOGYASZTOK VALUES (5, ’Kossuth Lajos’,’Kossuth János’,’Kohász’,7417175249);
+INSERT INTO FOGYASZTOK VALUES (6, ’Szent István’,’Szent Árpád’,’Bányász’,7417175159);
+END;
+ 
+
+
+Ceg:
+BEGIN
+INSERT INTO CEG VALUES (1,’Logiscool’, TO_DATE (’20080521’, ’YYYYMMDD’),1 ,4);
+INSERT INTO CEG VALUES (2,’WoodenSchool’, TO_DATE (’20200118’, ’YYYYMMDD’),2 ,1);
+INSERT INTO CEG VALUES (3,’Debreceni Egyetem Private School’, TO_DATE (’20121231’, ’YYYYMMDD’),3 ,3);
+INSERT INTO CEG VALUES (4,’Codecool’, TO_DATE (’20100509’, ’YYYYMMDD’),4 ,2);
+INSERT INTO CEG VALUES (5,’MinerLiner’, TO_DATE (’19980520’, ’YYYYMMDD’),5 ,6);
+INSERT INTO CEG VALUES (6,’Miskolci Egyetem Kohászat’, TO_DATE (’19751021’, ’YYYYMMDD’),6 ,5);
+END;
+ 
+A Táblázatokkal néhány kapcsolatos függvény és lekérdezés
+Darab számláló:
+CREATE OR REPLACE PROCEDURE darab1 AS x FOGYASZTOK.fogyaszto_id%type;
+BEGIN
+SELECT COUNT(fogyaszto_id) INTO x FROM FOGYASZTOK;
+DBMS_OUTPUT.PUT_LINE(’A fogyasztók darabszáma: ’ || x);
+END;  
+BEGIN
+darab1;
+END;
+ 
+
+PL/SQL függvény, ami egy megadott gyermek alapján megadja milyen szakterületen tanul.
+CREATE OR REPLACE FUNCTION SzakmaGyereknek (gyermek IN CHAR) RETURN CHAR AS y FOGYASZTOK.fogyaszto_foglalkozas%type;	
+BEGIN
+SELECT fogyaszto_foglalkozas INTO y FROM FOGYASZTOK WHERE fogyaszto_gyermek = gyermek;
+RETURN y;
+END;
+ 
+SELECT SzakmaGyereknek(’Braskó Anett’) FROM FOGYASZTOK; 
+ 
+A function olyan, hogy vissza kell adnia egy visszatérési értéket
+A procedure olyan, mint a C programozási nyelvben a void vagyis végrehajt valamit, de nem ad vissza értéket.
+A feladat kötelező lépései: 
+• tárolt eljárás adatok felvitelére,
+SZÉKHELY:
+Megvizsgálom, hogy ha létezik már ilyen id-val egy székhely akkor nem sikeres a beszúrás. Ellenkező esetben felveszem.
+create or replace procedure BeszurSzekhely(szid in number, irsz in number, szekhely_varos in char, szekhely_utca in char, hazszam in number) as
+    x number;
+begin
+select count(*) into x from SZEKHELY where szekhely_id = szid;
+    if x > 0 then
+        dbms_output.put_line('Már létezik ezzel az ID-val egy székhely!');
+    else
+        insert into SZEKHELY values (szid, irsz, szekhely_varos, szekhely_utca, hazszam);
+        dbms_output.put_line('Egy sor beszúrva a Székhely táblába!');
+    end if;
+
+end; 
+BEGIN
+SELECT BeszurSzekhely(10, 3532, 'Eger','Kálmán tér', 46) FROM SZEKHELY;
+END;
+ 
+rossz esetben:
+ 
+FOGYASZTÓK:
+Megnézem létezik e már ezzel az id-val a fogyasztó, ha nem akkor megnézem, hogy ugyan az e a diákigazolványszáma, ha az sem hasonlít egyikre se akkor felveszem.
+create or replace procedure BeszurFogyasztok(fid in number, sznev in char, gynev in char, ffoglalkozas in char, diakig in number) as
+    x number;
+begin
+select count(*) into x from FOGYASZTOK where fogyaszto_id = fid;
+    if x > 0 then
+        dbms_output.put_line('Már létezik ezzel az ID-val egy fogyasztó!');
+    else
+        select count(*) into x from FOGYASZTOK where fogyaszto_diakigazolvany = diakig;
+        if x > 0 then
+            dbms_output.put_line('Már létezik ezzel az igazolványszámmal egy fogyasztó!');
+
+        else
+            insert into FOGYASZTOK values (fid, sznev, gynev, ffoglalkozas, diakig);
+        dbms_output.put_line('Egy sor beszúrva a fogyasztók táblába!');
+        end if;
+    end if;
+end;
+ 
+ 
+rossz esetben:
+  
+CÉG:
+Megvizsgáljuk ez a cég létezik e már ezzel az ID, ha nem megnézzük a székhely id-ját jó helyen helyezkedik e el. Illetve megvizsgáljuk, ha az a fogyasztó már létezik e azon a telephelyen.
+create or replace procedure BeszurCeg(cegid in number, cnev in char, datum in date, szekid in number, fogyid in number) as
+    x number;
+begin
+    select count(*) into x from CEG where cid = cegid;
+    if x > 0 then
+        dbms_output.put_line('Már létezik ezzel az ID-val egy cég!');
+    else
+        select count(*) into x from CEG where sz_id = szekid;
+        if x > 0 then
+            dbms_output.put_line('Már létezik a cég ezzel a székhely id-val');
+        else
+            select count(*) into x from CEG where f_id = fogyid;
+             if x < 1 then
+                dbms_output.put_line('Nem létezik ez a fogyasztó id a cégnél!');
+             else
+                insert into CEG values (cegid, cnev, datum, szekid, fogyid);
+                dbms_output.put_line('Egy sor beszúrva a cég táblába!');
+            end if;
+        end if;
+    end if;
+end; 
+ 
+rossz esetben pl.:
+   
+
+
+ • tárolt eljárás adatok módosítására, 
+FOGYASZTO
+Megváltoztatom a megadott fogyaszto id-ja alapján a diákigazolvány számát.
+CREATE OR REPLACE PROCEDURE FOGYASZTODiakMod (fogyid in number, diakig in number) as x number;
+BEGIN
+    SELECT COUNT(*) INTO x FROM FOGYASZTOK WHERE fogyaszto_id = fogyid;
+    if x < 1 THEN
+        DBMS_OUTPUT.PUT_LINE('Nem létezik ezzel az ID-val a Fogyasztó!');
+    else
+        UPDATE FOGYASZTOK SET fogyaszto_diakigazolvany = diakig where fogyaszto_id = fogyid;
+         DBMS_OUTPUT.PUT_LINE('Sikeres Update');
+    end if;
+end;
+ 
+   
+SZEKHELY:
+A székhely id segítségével megváltoztatom a székhely irányítószámát, ha az az id nem létezik, nem sikeres a módosítás.
+CREATE OR REPLACE PROCEDURE SZEKHELYirszMod (szekid in number, irszmod in number) as x number;
+BEGIN
+    SELECT COUNT(*) INTO x FROM SZEKHELY WHERE szekhely_id = szekid;
+    if x < 1 THEN
+        DBMS_OUTPUT.PUT_LINE('Nem létezik ezzel az ID-val a Székhely!');
+    else
+        UPDATE SZEKHELY SET szekhely_irsz = irszmod where szekhely_id = szekid;
+         DBMS_OUTPUT.PUT_LINE('Sikeres update a székhely táblán');
+    end if;
+end;
+ 
+  rosz esetben pedig: 
+CEG:
+a helyes cég id megadásával lehet a fogyasztó idját és a székhely idját is változtatni.
+CREATE OR REPLACE PROCEDURE CEGszidfidMod (cegid in number, szid in number, fid in number) 
+as x number;
+BEGIN
+    SELECT COUNT(*) INTO x FROM CEG WHERE cid = cegid;
+    if x < 1 THEN
+        DBMS_OUTPUT.PUT_LINE('Nem létezik ezzel az ID-val a CÉG!');
+    else
+        UPDATE CEG SET f_id = fid where cid = cegid ;
+            UPDATE CEG SET sz_id = szid where cid = cegid;
+        DBMS_OUTPUT.PUT_LINE('Sikeres update a cég táblán');
+    end if;
+end;
+ 
+  Rossz esetben:  
+
+• tárolt eljárás adatok törlésére, 
+FOGYASZTOK:
+töröl egy paraméterként kapott fogyasztói név alapján, ha nincs ilyen akkor hibát ír ki a képernyőre de csak azokat tudja törölni amik nincsenek hivatkozva másik táblában
+CREATE OR REPLACE PROCEDURE Del_fogy (fogynev in char) as db number;
+h_nev exception;
+begin
+select count(*) into db from FOGYASZTOK where fogyaszto_gyermek = fogynev;
+if db=0 then raise h_nev;
+else delete from FOGYASZTOK where fogyaszto_gyermek = fogynev;
+end if;
+exception
+when h_nev then dbms_output.put_line(’Hibás Név’);
+end;
+ 
+   
+ezért inkább másik módszert alkalmazok és az id alapján törlök rekordot és ha hivatkozok arra akkor nem lehet törölni és egy speciális hibát adok vissza.
+CREATE OR REPLACE PROCEDURE Del_fogy (fogyid in number) as db number;
+h_nev exception;
+hiv_sor exception;
+begin
+select count(*) into db from FOGYASZTOK where fogyaszto_id = fogyid;
+if db=0 then raise h_nev;
+else
+    select count(*) into db from CEG where f_id = fogyid;
+    if db > 0 then raise hiv_sor;
+    else delete from FOGYASZTOK where fogyaszto_id = fogyid;
+    end if;
+end if;
+exception
+when h_nev then dbms_output.put_line('Hibás Fogyasztó ID');
+when hiv_sor then dbms_output.put_line('Erre a sorra történt hivatkozás a cég táblában, nem lehet törölni!');
+end;
+ 
+   
+SZEKHELY:
+CREATE OR REPLACE PROCEDURE Del_szek (szekid in number) as db number;
+h_irsz exception;
+hiv_sor exception;
+begin
+select count(*) into db from SZEKHELY where szekhely_id = szekid;
+if db=0 then raise h_irsz;
+else
+    select count(*) into db from CEG where sz_id = szekid;
+    if db > 0 then raise hiv_sor;
+    else delete from SZEKHELY where szekhely_id = szekid;
+    end if;
+end if;
+exception
+when h_irsz then dbms_output.put_line('Hibás Székhely ID');
+when hiv_sor then dbms_output.put_line('Erre a sorra történt hivatkozás a cég táblában, nem lehet törölni!');
+end;
+ 
+    
+CEG:
+CREATE OR REPLACE PROCEDURE Del_ceg (cegid in number) as db number;
+h_datum exception;
+begin
+select count(*) into db from CEG where cid = cegid;
+if db=0 then raise h_datum;
+else
+    delete from CEG where cid = cegid;
+end if;
+exception
+when h_datum then dbms_output.put_line('Hibás Cég ID');
+end;
+ 
+  
+
+• tárolt függvény adott rekord mezőinek lekérdezésére, 
+Kurzor attributomok:
+%rowcount – értéket ad egy pillanatra beolvasott rekord számára és ennek a száma.
+%found – értéke igaz, ha a fetch utasítás után nem értelmezhető. Az első fetch utásítás kiadása előtt mindig az értéke NULL.
+%notfound – értéke igaz, ha az adott fetch utasítás már nem talál a táblában rekordot Csak egy már kiadott fetch utasítás után értelmezhető. Az első fetch utasítás kiadása előtt értéke null.
+%isopen – ha a kurzor nyitott akkor az értéke igaz.
+SZEKHELY:
+Adott várossal rendelkező város irányítószámát növelem egy adott százalékkal. for ciklus segítségével oldom meg ezt a feladatot.
+create or replace function szekhely_irsznov (varosbe in char, ert in int) return number as
+	cursor cur_a is select * from SZEKHELY where szekhely_varos = varosbe 
+	for update of szekhely_irsz;
+	db number :=0;
+begin
+	for cv in cur_a loop
+		update SZEKHELY set szekhely_irsz = cv.szekhely_irsz*(1+ert/100) where current of cur_a;
+	db: = db+1;
+	end loop;
+	return db;
+end;
+ 
+select szekhely_irsznov ('Budapest', 10) from dual;
+ 
+nem megfelelő ez a futtatás ezért ezt kell használni.
+ 
+10%-al növeltem a budapesti irányítószámokat.
+Illetve megszámolom hány ilyen rekord volt amit változtattam.
+
+Kiírom az a Székhely elhelyezkedésének a városát. 
+implicit kurzor használata: hasonlóképpen csak implicit verzióban.
+create or replace procedure szekhely_irsznovim (varosbe in char, ert in int) is db number:=0; 
+begin
+for cv in (select * from SZEKHELY where szekhely_varos = varosbe) loop 
+dbms_output.put_line('In: '||cv.szekhely_varos||'-'||cv.szekhely_irsz||'-'||cv.szekhely_id); 
+update SZEKHELY set szekhely_irsz=cv.szekhely_irsz*(1+ert/100) where SZEKHELY.szekhely_id = cv.szekhely_id; 
+select * into cv from SZEKHELY where szekhely_id = cv.szekhely_id; 
+dbms_output.put_line('Out: '||cv.szekhely_varos||'-'||cv.szekhely_irsz||'-'||cv.szekhely_id); 
+db:=db+1;
+end loop;
+dbms_output.put_line('Árváltozás: '||db);
+end;
+ 
+ 
+FOGYASZTOK:
+Kurzor segítségével a FOGYASZTÓK táblában lekérdezem azokat az adatokat, amik, egy bizonyos típusú szakma paraméter alapján kilistázom azokat. 
+explicit verzióban:
+create procedure FogyInSzakmaLista3 (szakma in char) is cursor cur_a is select * from FOGYASZTOK where fogyaszto_foglalkozas = szakma;
+	a cur_a%rowtype;
+begin
+	open cur_a;
+	loop
+		fetch cur_a into a;
+		exit when cur_a%notfound;
+		dbms_output.put_line('Szakma amit a gyermek tanul: '|| a.fogyaszto_foglalkozas || 'Gyermek neve: '|| a.fogyaszto_gyermek);
+	end loop;
+	close cur_a;
+end;
+ 
+ 
+
+
+CEG:
+Kurzor segítségével lekérdezem a CÉG táblában az egy bizonyos index határok között minden adatott.
+create or replace procedure IndexAlapjanKiir (index1 in int, index2 in int)as 
+    cursor cur is select * from CEG where cid >= index1 and cid <= index2;
+    cv cur%rowtype;
+begin
+	open cur;
+	fetch cur into cv;
+	if cur%notfound then
+	    dbms_output.put_line('Nincs találat!');
+    else
+        dbms_output.put_line('Cégneve:'  || cv.nev  || ' Alapítás dátuma: '|| cv.alapitasiev || ' index :' || cv.cid);
+        loop
+	        fetch cur into cv; 
+            exit when cur%notfound; 
+            dbms_output.put_line('Cégneve: ' || cv.nev  || ' Alapítás dátuma: '|| cv.alapitasiev || ' index :' || cv.cid);
+        end loop;
+    end if;
+    close cur;
+end; 
+futtatás:
+begin 
+IndexAlapjanKiir(2,8);
+end;
+ 
+
+• tárolt függvény adott feltételű rekordok aggregált értékének lekérdezésére, 
+Cégre:
+Kiválasztok egy adott azonosítót és megkeresem rá a megfelelő cég nevét:
+CREATE OR REPLACE FUNCTION CegIDKeres (cegazonosito IN NUMBER) RETURN CHAR AS x number;
+vi char(100) :='Nem létező azonosító!';
+y char(40);
+BEGIN
+	SELECT COUNT(*) INTO x FROM CEG WHERE cid = cegazonosito;
+	IF x >= 1 THEN
+		SELECT nev INTO y FROM CEG WHERE cid = cegazonosito;
+		vi :='A talált cég neve: '|| y;
+    END IF;
+RETURN vi;
+END;
+Az x változó a bekért azonosítóval rendelkező sorok számát tárolja és az  y a cég neve tárolására alkalmazandó.
+ 
+  
+Székhely:
+Tárolt program, ami töröl egy paraméterként megadott id alapján az adott székhely rekordot.
+Ha nincs ilyen hiba üzenetet kapunk.
+create or replace procedure del_SZid (idbe in number) as db number;
+ h_roszid exception; 
+begin 
+select count(*) into db from SZEKHELY where szekhely_id = idbe; 
+if db=0 then raise h_roszid; 
+else 
+delete from SZEKHELY where szekhely_id = idbe; 
+end if; 
+exception 
+when h_roszid then dbms_output.put_line('Hibás rendszám'); 
+end;
+ 
+  másodjára ->  
+Fogyasztók:
+Kiválasztok egy adott azonosítót és megkeresem rá a megfelelő fogyasztó diáákigazolványszámát:
+CREATE OR REPLACE FUNCTION FogyDiakKeres (fogyid IN NUMBER) RETURN CHAR AS x number;
+idvalasz char(100) :='Nem létező azonosító!';
+ig number(10);
+
+BEGIN
+	SELECT COUNT(*) INTO x FROM FOGYASZTOK WHERE fogyaszto_id = fogyid;
+	IF x >= 1 THEN
+		SELECT fogyaszto_diakigazolvany INTO ig FROM FOGYASZTOK WHERE fogyaszto_id = fogyid;
+		idvalasz :='A talált cég neve: '|| ig;
+    END IF;
+RETURN idvalasz;
+END;
+ 
+ 
+
+• tárolt csomag készítése egy tábla funkcióinak összefogására (legyen benne a táblához készített összes tárolt alprogram, de legalább két darab),
+Székhely táblán csomag:  
+Készítek egy ModSZ tárolt eljárást, ami módosítja egy paraméterként megadott ID alapján az irányítószámot egy paraméterként megadott értékre.
+Majd egy tárolt függvényt hozok létre KerV mely visszaadja paraméterként adott székhelyek városát. 
+A két alprogramot elhelyezem egy csomagban, aminek a neve SZEKHELY_cs.
+create or replace procedure ModSZ(szidbe int, irszbe int)  as
+begin
+	update SZEKHELY set szekhely_irsz = irszbe where szekhely_id = szidbe;
+end;
+ 
+
+create or replace function KerV(szidbe in int) return char as szvaros char (25);
+begin
+	select szekhely_varos into szvaros from SZEKHELY where szekhely_id = szidbe;
+	return szvaros;
+end;
+ 
+create or replace package SZEKHELY_cs as 
+	procedure ModSZ(szidbe int, irszbe int);
+	function KerV(szidbe in int) return char;
+end SZEKHELY_cs;
+create or replace package body SZEKHELY_cs as
+	procedure ModSZ(szidbe int, irszbe int) as
+	begin
+		update SZEKHELY set szekhely_irsz = irszbe where szekhely_id = szidbe;
+	end;
+	function KerV(szidbe in int) return char as szvaros char(25);
+	begin
+		select szekhely_varos into szvaros from  SZEKHELY where szekhely_id = szidbe;
+		return szvaros;
+	end;
+end SZEKHELY_cs;
+ 
+ 
+futtatás:
+begin
+SZEKHELY.ModSZ(10,3531);
+end;
+select SZEKHELY.KerV(10) from dual;
+ 
+ 
+
+Fogyasztó táblán csomag:  
+Készítek egy ModF tárolt eljárást, ami módosítja egy paraméterként megadott ID alapján az diákigazolvány számát egy paraméterként megadott értékre.
+Majd egy tárolt függvényt hozok létre KerSZ mely visszaadja paraméterként adott fogyasztónak a szülő nevét. 
+A két alprogramot elhelyezem egy csomagban, aminek a neve FOGYASZTOK_cs.
+create or replace procedure ModF (fidbe int, diakbe int) as 
+begin
+	update FOGYASZTOK set fogyaszto_diakigazolvany = diakbe where fogyaszto_id = fidbe;
+end;
+ 
+create or replace function KerSZ(fidbe in int) return char as sznev char(30);
+begin
+	select fogyaszto_szulonev into sznev from FOGYASZTOK where fogyaszto_id = fidbe;
+	return sznev;
+end;
+ 
+create or replace package FOGYASZTOK_cs as
+	procedure ModF(fidbe int, diakbe int);
+	function KerSZ(fidbe int) return char;
+end FOGYASZTOK_cs;
+
+create or replace package body FOGYASZTOK_cs as
+	procedure ModF(fidbe int, diakbe int) as
+	begin
+		update FOGYASZTOK set fogyaszto_diakigazolvany = diakbe where fogyaszto_id = fidbe;
+	end;
+	function KerSZ(fidbe int) return char as sznev char(30);
+	begin
+		select fogyaszto_szulonev into sznev from FOGYASZTOK where fogyaszto_id = fidbe;
+		return sznev; 
+	end;
+ 
+ 
+ 
+ 
+
+Cég táblán csomag:  
+Készítek egy ModD tárolt eljárást, ami módosítja egy paraméterként megadott ID alapján a dátumot egy paraméterként megadott értékre.
+Majd egy tárolt függvényt hozok létre KerN, mely visszaadja paraméterként adott cégnek nevét. 
+A két alprogramot elhelyezem egy csomagban, aminek a neve CEG_cs.
+create or replace procedure ModD(cidbe int, datumbe char) as
+begin
+	update CEG set alapitasiev  =  To_Date(datumbe,’YYYYMMDD’) where cid = cidbe;
+end;
+ 
+create or replace function KerN(cidbe in int) return char as cnev char(35);
+begin
+	select nev into cnev from CEG where cid = cidbe;
+	return cnev;
+end;
+ 
+create or replace package CEG_cs as
+	procedure ModD(cidbe int, datumbe char);
+	function Kern (cidbe in int) return char;
+end CEG_cs;
+ 
+
+
+create or replace package body CEG_cs as
+	procedure ModD(cidbe int, datumbe char) as
+	begin
+		update CEG set alapitasiev = TO_DATE(datumbe,'YYYYMMDD') where cid = cidbe;
+	end;
+	function KerN(cidbe in int) return char as cnev char (35);
+	begin
+		select nev into cnev from CEG where cid = cidbe;
+		return cnev;
+	end;
+end CEG_cs;
+ 
+ 
+begin
+CEG_cs.ModD(2,'20020205');
+end;
+select CEG_cs.KerN(2) from dual;
+
+ 
+• trigger készítése kulcs érték automatikus megadására,
+Trigger: adott esemény bekövetkezésekor automatikusan végrehajtásra kerülő tárolt műveletsor. Nem kell rá hivatkozni!
+SZEKHELY:
+create sequence szekhely_szekvencia;
+create or replace trigger szekhely_on_beszur before INSERT ON SZEKHELY FOR EACH ROW
+BEGIN
+    SELECT szekhely_szekvencia.nextval into :new.szekhely_id from dual;
+end;
+ 
+ 
+FOGYASZTOK:
+create sequence fogyasztok_szekvencia;
+create or replace trigger fogyasztok_on_beszur before INSERT ON FOGYASZTOK FOR EACH ROW
+BEGIN
+    SELECT fogyasztok_szekvencia.nextval into :new.fogyaszto_id from dual;
+end;
+ 
+ 
+CEG:
+create sequence ceg_szekvencia1;
+create or replace trigger ceg_on_beszur before INSERT ON CEG FOR EACH ROW
+BEGIN
+    SELECT ceg_szekvencia1.nextval into :new.cid from dual;
+end;
+ 
+ 
+
+
+ • trigger készítése a módosítások kontrollálására.
+SZEKHELY:
+Ellenőrizzük, hogy megfelelő e a irányítószámnak a nagysága, ha nem akkor nem módosítja.
+create or replace trigger irszell before UPDATE of szekhely_irsz on SZEKHELY FOR EACH ROW
+declare
+maxirsz  number;
+minirsz number;
+BEGIN
+maxirsz :=10000;
+minirsz := 999;
+    if (:new.szekhely_irsz not between minirsz and maxirsz ) then
+        :new.szekhely_irsz := :old.szekhely_irsz;
+    end if; 
+end;
+
+update SZEKHELY set szekhely_irsz =3531 where szekhely_id =3;
+
+select * from SZEKHELY where szekhely_id =3;
+
+ 
+ 
+ 
+nem változtatta meg az irányítószámot helytelen adatra.
+FOGYASZTOK:
+ellenőrizzük, hogy megfelelő e a diákigazolvány nagysága, ha nem akkor nem módosítja.
+create or replace trigger diakigell before UPDATE ON FOGYASZTOK FOR EACH ROW
+declare
+maxdiak  number;
+mindiak number;
+BEGIN
+maxdiak  :=10000000000;
+mindiak := 999999999;
+    if (:new.fogyaszto_diakigazolvany not between mindiak and maxdiak ) then
+        :new.fogyaszto_diakigazolvany := :old.fogyaszto_diakigazolvany;
+    end if; 
+end;
+
+
+update FOGYASZTOK set fogyaszto_diakigazolvany =12345678 where fogyaszto_id =2;
+select * from fogyasztok where fogyaszto_id =2;
+ 
+ 
+
+
+
+
+
+
+
+
+
+ 
+nem változtatta meg a diákigazolványszámát helytelen adatra.
+
+CEG:
+Cél: A megváltoztatni kívánt dátum, ha nagyobb, mint a jelenlegi sysdate akkor sajnos nem jön létre a cég.
+helyes megoldás:
+create or replace trigger CheckEvCeg before update of alapitasiev on CEG for each row
+begin
+    if :new.alapitasiev > sysdate then 
+        :new.alapitasiev := sysdate;
+    end if;
+end;
+
+UPDATE CEG SET alapitasiev = to_date('20330205','YYYYMMDD') where cid =1;
+
+select * from ceg where cid =1;
+ 
+eredeti dátum:
+ 
+majd a rossz dátum használata és kiiratás:
+ 
+
+• trigger készítése módosítási események naplózására (többféle esemény naplózása egyetlen triggerrel plusz pontot ér)
+napló létrehozása:
+create table Naplo (muvelet char(50), datum date, felhasznalo char(20));
+
+szekhely:
+create or replace trigger irszellnaplo before UPDATE of szekhely_irsz on SZEKHELY FOR EACH ROW
+declare
+maxirsz  number;
+minirsz number;
+msg char(50) := concat(:old.szekhely_irsz, ' Módosítva lett a Székhely irányítószáma.');
+BEGIN
+maxirsz :=10000;
+minirsz := 999;
+    if (:new.szekhely_irsz not between minirsz and maxirsz ) then
+        :new.szekhely_irsz := :old.szekhely_irsz;
+        insert into naplo values(msg, sysdate, user);
+    end if; 
+end;
+ 
+
+naplózás és érték felvétel megpróbálása alacsony szinten:
+ 
+fogyasztok:
+create or replace trigger diakigellnaplo before UPDATE ON FOGYASZTOK FOR EACH ROW
+declare
+maxdiak  number;
+mindiak number;
+msg char(50) := concat(:old.fogyaszto_diakigazolvany, ' Módosítva lett a fogyasztó diákja.');
+BEGIN
+maxdiak  :=10000000000;
+mindiak := 999999999;
+    if (:new.fogyaszto_diakigazolvany not between mindiak and maxdiak ) then
+        :new.fogyaszto_diakigazolvany := :old.fogyaszto_diakigazolvany;
+        insert into naplo values(msg, sysdate, user);
+    end if; 
+end;
+ 
+update FOGYASZTOK set fogyaszto_diakigazolvany =12345678 where fogyaszto_id =2;
+select * from fogyasztok where fogyaszto_id =2;
+frissítés:
+ 
+frissítés megnézése, hogy teljes mértékben nem történt meg:
+  
+napló megtekintése:
+ 
+ceg:
+Cél: A megváltoztatni kívánt dátum, ha nagyobb, mint a jelenlegi sísdate akkor sajnos nem jön létre a cég és ennek naplózása.
+
+create or replace trigger CheckEvCegNaplo before update of alapitasiev on CEG for each row
+declare
+msg char(50) := concat(:old.alapitasiev, ' Módosítva lett a Cég Dátuma.');
+begin
+
+    if :new.alapitasiev > sysdate then 
+        :new.alapitasiev := sysdate;
+        insert into naplo values(msg, sysdate, user);
+    end if;
+end;
+ 
+eredeti:
+ 
+naplózáshoz megváltoztatjuk a dátumot:
+ 
+naplóba került adat:
+ 
+
+A PL/SQL-ben megvalósítandó elemek: 
+• normál parancsok használata, 
+• implicit kurzor, 
+• explicit kurzor, 
+• kivételkezelés (exception használata).
