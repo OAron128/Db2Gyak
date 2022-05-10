@@ -13,7 +13,7 @@ end;
 
 futtatás:
 BEGIN
-SELECT BeszurSzekhely(10, 3532, 'Eger','Kálmán tér', 46) FROM SZEKHELY;
+	BeszurSzekhely(10, 3532, 'Eger','Kálmán tér', 46);
 END;
 
 
@@ -65,6 +65,6 @@ end;
 
 futtatás
 begin
-BeszurCeg(7,'Dumaszínház',TO_DATE('20000612','YYYMMDD'),10,3);
+BeszurCeg(7,'Dumaszínház',TO_DATE('20000612','YYYYMMDD'),10,3);
 end;
 

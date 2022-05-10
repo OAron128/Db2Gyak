@@ -39,6 +39,7 @@ create or replace package body FOGYASZTOK_cs as
 		select fogyaszto_szulonev into sznev from FOGYASZTOK where fogyaszto_id = fidbe;
 		return sznev; 
 	end;
+end;
 
 
 futtatások:

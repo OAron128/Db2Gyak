@@ -50,6 +50,7 @@ end;
 
 futtatás
 begin
-CEGszidfidMod(1,1,1);
+CEGszidfidMod(1,2,1);
 end;
+
 

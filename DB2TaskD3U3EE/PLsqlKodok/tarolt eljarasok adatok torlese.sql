@@ -6,7 +6,7 @@ if db=0 then raise h_nev;
 else delete from FOGYASZTOK where fogyaszto_gyermek = fogynev;
 end if;
 exception
-when h_nev then dbms_output.put_line(’Hibás Név’);
+when h_nev then dbms_output.put_line('Hibás Név');
 end;
 
 

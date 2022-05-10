@@ -12,6 +12,7 @@ end;
 
 futtatások;
 update SZEKHELY set szekhely_irsz =3531 where szekhely_id =3;
+update SZEKHELY set szekhely_irsz =00 where szekhely_id =3;
 
 select * from SZEKHELY where szekhely_id =3;
 
@@ -31,6 +32,7 @@ end;
 
 futtatások:
 update FOGYASZTOK set fogyaszto_diakigazolvany =12345678 where fogyaszto_id =2;
+update FOGYASZTOK set fogyaszto_diakigazolvany =00 where fogyaszto_id =2;
 
 select * from fogyasztok where fogyaszto_id =2;
 
@@ -46,6 +48,6 @@ begin
 end;
 
 futtatások:
-UPDATE CEG SET alapitasiev = to_date('20330205','YYYYMMDD') where cid =1;
+UPDATE CEG SET alapitasiev = to_date('20330205','YYYYMMDD') where cid = 2;
 
-select * from ceg where cid =1;
+select * from ceg where cid = 2;
